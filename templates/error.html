@@ -1,0 +1,1 @@
+{% extends 'base.html' %}{% block content %}<section class="panel"><h1>No se pudo completar la acción</h1><p>{{message}}</p><div class="form-actions"><a class="button secondary" href="{{url_for('index') if g.user else url_for('login')}}">Volver</a></div></section>{% endblock %}

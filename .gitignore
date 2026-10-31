@@ -1,0 +1,11 @@
+.venv/
+instance/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+.vercel/
+public/static/
+*.log
+figma-assets.json

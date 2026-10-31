@@ -1,0 +1,5 @@
+{% macro icon(name, group='light', size=18) -%}
+{% set filename=group ~ '-' ~ name ~ '.svg' %}<span class="icon-slot" style="--slot:{{size}}px" aria-hidden="true">{% if asset_exists(filename) %}<img class="{{'light-asset' if group == 'light'}}" src="{{url_for('static',filename='figma/' ~ filename)}}" alt="">{% if group == 'light' and asset_exists('dark-' ~ name ~ '.svg') %}<img class="dark-asset" src="{{url_for('static',filename='figma/dark-' ~ name ~ '.svg')}}" alt="">{% endif %}{% endif %}</span>
+{%- endmacro %}
+{% macro csrf() %}<input type="hidden" name="csrf" value="{{session.csrf}}">{% endmacro %}
+{% macro brand() %}<div class="brand"><div><strong>SIDOC-OCI</strong><small>ACERVO DOCUMENTAL</small></div><span class="crest-slot">{% if custom_logo %}<img src="{{url_for('institutional_logo')}}" alt="Escudo del Gobierno Regional Amazonas">{% else %}<img src="{{url_for('static', filename='branding/escudo-amazonas.jpg')}}" alt="Escudo del Gobierno Regional Amazonas">{% endif %}</span></div>{% endmacro %}

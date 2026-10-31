@@ -1,0 +1,15 @@
+.git
+.venv
+instance
+__pycache__
+**/__pycache__
+*.pyc
+.env
+.env.*
+!.env.example
+docs
+figma-assets.json
+tests
+scripts/download_figma_assets.py
+scripts/check_figma_assets.py
+.vercel
