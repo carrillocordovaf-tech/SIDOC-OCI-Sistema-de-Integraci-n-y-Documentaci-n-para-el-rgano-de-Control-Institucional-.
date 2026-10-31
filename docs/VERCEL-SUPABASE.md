@@ -24,7 +24,7 @@ Alternativa manual: realiza los pasos siguientes en los paneles oficiales. No co
 ## 2. Preparar Supabase
 
 1. En https://supabase.com/dashboard crea un proyecto o selecciona uno destinado a SIDOC-OCI. Elige la región adecuada para tu institución y guarda la contraseña de la base de datos en tu gestor de contraseñas.
-2. En SQL Editor ejecuta una sola vez `supabase/migrations/0001_sidoc.sql`. La migración no contiene usuarios ni datos de demostración. No la repitas sobre un esquema existente: las modificaciones posteriores deben usar nuevas migraciones.
+2. En SQL Editor ejecuta una sola vez `supabase/migrations/0001_sidoc.sql` y después `supabase/migrations/0002_google_oauth.sql`. La migración no contiene usuarios ni datos de demostración. No la repitas sobre un esquema existente: las modificaciones posteriores deben usar nuevas migraciones.
 3. Ejecuta `supabase/storage.sql`. Crea/ajusta el bucket privado `sidoc-documents`, con máximo de 10 MB y tipos PDF/PNG/JPEG. No lo marques público ni crees políticas anónimas de lectura/escritura. PNG/JPEG se usan solo para el escudo administrativo.
 4. En **Connect → Transaction pooler**, copia la cadena real de conexión (puerto 6543), con usuario y host exactos del panel, e incorpora la contraseña correctamente codificada. No deduzcas el host a partir de la región. Esta cadena será `DATABASE_URL`.
 5. Copia la URL HTTPS del proyecto como `SUPABASE_URL` y la clave heredada `service_role` del apartado API Keys como `SUPABASE_SERVICE_ROLE_KEY`. Esa clave es exclusiva del backend; nunca debe aparecer en HTML, JavaScript ni variables con prefijo público.
@@ -82,7 +82,7 @@ Crear administrador y personal; cargar PDF pequeño y mayor de 4,5 MB; comprobar
 
 En Configuración existe una acción administrativa para limpiar cargas incompletas y eliminaciones pendientes. Los archivos de cargas inconclusas solo se limpian cuando su URL de subida ya no puede seguir utilizándose. Las eliminaciones fallidas se conservan en una cola persistente para reintento. No hay tarea periódica de mantenimiento configurada todavía.
 
-Google OAuth y recuperación automática por correo siguen pendientes; el administrador puede restablecer contraseñas desde la aplicación. La fotografía de Kuélap y los iconos de Figma siguen pendientes de su descarga original.
+Google OAuth está implementado y pendiente de configurar según [GOOGLE-OAUTH.md](GOOGLE-OAUTH.md). La recuperación automática por correo sigue pendiente; el administrador puede restablecer contraseñas desde la aplicación. La fotografía de Kuélap y los iconos de Figma siguen pendientes de su descarga original.
 
 ## Documentación oficial consultada
 

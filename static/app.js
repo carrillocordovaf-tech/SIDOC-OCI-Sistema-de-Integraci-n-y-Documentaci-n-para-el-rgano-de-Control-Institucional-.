@@ -12,7 +12,13 @@ if (document.body.dataset.demo === 'true') {
   }, true);
 }
 const themeButton = document.getElementById('theme-toggle');
-function reflectTheme() { themeButton?.setAttribute('aria-pressed', String(document.documentElement.dataset.theme === 'dark')); }
+function reflectTheme() {
+  const dark = document.documentElement.dataset.theme === 'dark';
+  themeButton?.setAttribute('aria-pressed', String(dark));
+  if(themeButton) themeButton.title = dark ? 'Activar modo claro' : 'Activar modo oscuro';
+  document.querySelectorAll('[data-theme-label]').forEach(label => { label.textContent = dark ? 'Modo claro' : 'Modo oscuro'; });
+  document.querySelectorAll('[data-theme-short]').forEach(label => { label.textContent = dark ? 'Claro' : 'Oscuro'; });
+}
 reflectTheme();
 themeButton?.addEventListener('click', () => {
   const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
@@ -45,11 +51,12 @@ if (remember && username) {
   });
 }
 const info = {
-  google: ['Acceso con Google pendiente', 'El acceso con Google todavía no está habilitado. Ingresa con tu cuenta de SIDOC-OCI.'],
+  google: ['Acceso con Google', 'El administrador debe configurar las credenciales de Google antes de habilitar este acceso. Puedes usar tu cuenta y contraseña de SIDOC-OCI.'],
   recovery: ['Recuperar el acceso', 'Solicita al administrador que restablezca tu contraseña desde Usuarios y permisos. La recuperación por correo todavía no está habilitada.'],
   support: ['Solicitar una cuenta', 'Solicita tu cuenta al administrador del Órgano de Control Institucional.'],
   privacy: ['Privacidad y seguridad', 'Acceso exclusivo para personal autorizado. Esta versión guarda los PDF y sus datos en el servidor local y registra las operaciones. El respaldo en la nube aún no está configurado.']
 };
+if (document.body.dataset.demo === 'true') info.google = ['Google en la demostración', 'Esta demostración no autentica cuentas reales. Para habilitar Google se deben configurar las credenciales OAuth y la base de datos del aplicativo real.'];
 if (document.body.dataset.cloud === 'true') info.privacy = ['Privacidad y seguridad', 'Acceso exclusivo para personal autorizado. Los documentos se guardan en almacenamiento privado de Supabase y las operaciones quedan registradas.'];
 document.querySelectorAll('[data-info]').forEach(button => button.addEventListener('click', () => {
   const [title, text] = info[button.dataset.info];

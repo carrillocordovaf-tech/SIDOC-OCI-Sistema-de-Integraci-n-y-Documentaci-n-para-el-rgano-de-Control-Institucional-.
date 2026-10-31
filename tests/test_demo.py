@@ -60,6 +60,7 @@ class DemoTests(unittest.TestCase):
 
     def test_demo_has_no_account_creation_or_credential_form(self):
         page = self.client.get('/login').data
+        self.assertIn(b'data-theme-label', page)
         self.assertIn(b'Entrar como administrador', page)
         self.assertIn(b'Entrar como personal', page)
         self.assertNotIn(b'id="login-form"', page)

@@ -36,3 +36,9 @@ Prueba adicional en Chromium: inicio de sesión, formulario móvil, carga direct
 ## Demostración sin Supabase
 
 Se añadieron seis pruebas aprobadas del modo de demostración. La suite local aprobó 28 pruebas; las 11 pruebas PostgreSQL optativas se omitieron porque el contenedor de QA estaba detenido (su ejecución anterior se conserva arriba). Chromium verificó el recorrido de los nueve módulos principales en administrador, la navegación móvil, el cambio de tema, el bloqueo de pantallas administrativas para personal y los avisos de solo lectura. No se modificaron las cuentas ni el proyecto Supabase del usuario.
+
+## Google OAuth, imagen y tema
+
+Se implementó OpenID Connect con Authlib 1.9.1 y se aplicaron las migraciones 0001 y 0002 a un PostgreSQL 17 de QA. La ejecución completa aprobó 47 pruebas. Ocho pruebas específicas de Google verifican tokens RS256 firmados de prueba, state, nonce, PKCE, emisor/audiencia/expiración, correo verificado, cuentas autorizadas/activas, roles y revocación de vinculación. La verificación local posterior a los cambios visuales aprobó 36 pruebas y omitió las 11 PostgreSQL optativas, previamente aprobadas.
+
+Chromium comprobó el enlace de Google en la pantalla real configurada con credenciales ficticias, la autorización administrativa de correos, el logotipo local y la imagen original de 567 × 548, además de la vista móvil sin desbordamientos. También comprobó el cambio de modo oscuro/claro, su etiqueta y la conservación al recargar. No se probó una cuenta real ni se crearon credenciales de Google. La activación en producción requiere completar la base de datos y las variables privadas.

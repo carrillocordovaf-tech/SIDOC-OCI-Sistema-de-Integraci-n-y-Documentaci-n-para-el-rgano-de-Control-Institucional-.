@@ -6,19 +6,9 @@ Proveedor elegido: **Vercel + Supabase**. La guía actual está en [VERCEL-SUPAB
 
 SQLite guarda los datos en `instance/sidoc.sqlite` y los PDF en `instance/pdfs`. No se requiere Supabase, Firebase ni una cuenta de almacenamiento externo. Inter se sirve desde el repositorio. Solo se necesita PyPI para instalar las dependencias de Python.
 
-## Acceso con Google: Google Cloud / Google Identity Services (opcional, no implementado)
+## Acceso con Google: Google Cloud / OpenID Connect (opcional, implementado; activación pendiente)
 
-El botón de la maqueta todavía no inicia OAuth. Para habilitarlo:
-
-1. Entrar en Google Cloud Console con la cuenta institucional y crear o seleccionar un proyecto.
-2. En Google Auth Platform, configurar Branding, Audience y Data Access; solicitar únicamente `openid`, `email` y `profile`.
-3. Elegir audiencia interna solo si la organización dispone de Google Workspace y el proyecto pertenece a ella. En pruebas externas, añadir usuarios de prueba autorizados.
-4. Crear un cliente OAuth de tipo aplicación web. Como URI de redirección local propuesto usar `http://localhost:5000/auth/google/callback`; usar siempre el mismo host al abrir el aplicativo. Esa ruta AÚN NO EXISTE y debe implementarse antes de probar OAuth.
-5. Guardar el Client ID y Client Secret en variables privadas del entorno (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`), nunca en Git ni en este chat.
-6. Implementar el flujo OpenID Connect y el callback en el servidor, con state/nonce, validación de emisor/audiencia/email verificado y asociación a una cuenta activa ya autorizada por el administrador. No conceder acceso por el solo hecho de tener una cuenta de Google ni confiar en un correo enviado por el navegador.
-7. Probar cuenta autorizada, cuenta no autorizada, cuenta desactivada y cierre de sesión. Configurar una URI HTTPS solo cuando se autorice un despliegue.
-
-Las variables anteriores están propuestas; el código actual no las consume. Crear credenciales por sí solo no activa el botón.
+El módulo está implementado. Sigue [GOOGLE-OAUTH.md](GOOGLE-OAUTH.md) para crear el cliente, aplicar la segunda migración, configurar sus variables y autorizar cada cuenta. No se habilita en el modo de demostración.
 
 ## Recuperación automática por correo: servidor SMTP institucional (opcional, no implementado)
 
