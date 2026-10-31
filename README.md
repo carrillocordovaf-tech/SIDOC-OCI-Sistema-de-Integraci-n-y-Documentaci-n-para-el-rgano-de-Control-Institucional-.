@@ -2,6 +2,10 @@
 
 Aplicativo local de gestión documental con Flask, SQLite y almacenamiento de PDF en disco. Interfaz adaptable basada en las cinco pantallas del archivo Figma del usuario. Preparado para Vercel + Supabase; despliegue real pendiente de autorizar las cuentas. Consulta [la guía de nube](docs/VERCEL-SUPABASE.md). El escudo original proporcionado por el usuario está incorporado. La reproducción visual completa está pendiente de los demás recursos de Figma cuya descarga bloquea el proxy; consulta [el inventario](docs/FIGMA.md).
 
+## Ver una demostración sin Supabase
+
+En Vercel añade la variable `SIDOC_DEMO=1` y despliega. Podrás recorrer todos los módulos con datos ficticios y elegir el perfil administrador/personal sin contraseña. No se guardan cambios ni archivos. [Pasos de demostración](docs/DEMOSTRACION.md). Para activar la versión real, configura Supabase, elimina esa variable o ponla en `0` y vuelve a desplegar.
+
 ## Abrir el aplicativo
 
 Requiere Python 3.12 o posterior.

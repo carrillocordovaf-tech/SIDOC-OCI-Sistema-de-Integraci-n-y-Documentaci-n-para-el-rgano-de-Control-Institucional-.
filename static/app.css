@@ -24,3 +24,5 @@ button:has(.asset-control-label) .icon-slot:empty,a:has(.asset-control-label) .i
 @media(max-width:760px){.workspace-page{padding-bottom:76px}.bottom-nav{position:fixed;left:0;right:0;bottom:0}.filters select{padding-left:9px;padding-right:4px}.notifications:has(.icon-slot:empty):after{display:none}}
 
 .crest-slot img{object-fit:contain}.logo-preview{display:block;max-width:180px;max-height:180px;object-fit:contain;margin-top:18px}
+
+.demo-banner{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 24px;background:#fff3d7;color:#664500;border-bottom:1px solid #e5ce90;font-size:12px;line-height:1.5}.demo-banner nav{display:flex;gap:16px;flex-wrap:wrap}.demo-banner a{color:#664500;text-decoration:underline}.demo-access{display:grid;gap:14px;margin-top:28px}.demo-access p{font-size:13px}.demo-access .button{min-height:48px}.demo-banner~.workspace{min-height:calc(100vh - 140px)}body[data-demo=true] input:disabled{opacity:.6;cursor:not-allowed}@media(max-width:760px){.demo-banner{align-items:flex-start;flex-direction:column;gap:6px;padding:12px 20px}.demo-banner nav{gap:18px}.demo-banner nav a{padding:3px 0}}

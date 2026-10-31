@@ -1,4 +1,9 @@
-"""Vercel's Flask entrypoint. Cloud credentials are supplied as private env vars."""
-from app import create_app
+"""Vercel entrypoint. Demonstration must be explicitly enabled."""
+import os
 
-app = create_app()
+if os.environ.get('SIDOC_DEMO') == '1':
+    from demo_app import create_demo_app
+    app = create_demo_app()
+else:
+    from app import create_app
+    app = create_app()

@@ -1,3 +1,16 @@
+if (document.body.dataset.demo === 'true') {
+  document.querySelectorAll('input[type="password"], input[type="file"]').forEach(input => { input.disabled = true; });
+  document.addEventListener('submit', event => {
+    const form = event.target;
+    if (form.method.toLowerCase() === 'post' && new URL(form.action).pathname !== '/logout') {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      document.getElementById('info-title').textContent = 'Vista de demostración';
+      document.getElementById('info-content').textContent = 'Puedes explorar los módulos. Esta demostración no guarda usuarios, documentos ni cambios; la conexión a Supabase se configurará después.';
+      document.getElementById('info-dialog').showModal();
+    }
+  }, true);
+}
 const themeButton = document.getElementById('theme-toggle');
 function reflectTheme() { themeButton?.setAttribute('aria-pressed', String(document.documentElement.dataset.theme === 'dark')); }
 reflectTheme();
