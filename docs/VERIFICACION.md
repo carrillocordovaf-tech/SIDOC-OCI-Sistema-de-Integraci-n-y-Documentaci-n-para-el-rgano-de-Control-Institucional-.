@@ -32,3 +32,7 @@ Se añadió prueba de PDF de 6 MB mediante reserva, subida y finalización; fina
 El build de assets de Vercel pasó. Las credenciales de Vercel/Supabase no están configuradas y no existe una URL de despliegue confirmada. El proyecto falla si faltan credenciales en modo nube, en vez de crear datos en disco efímero.
 
 Prueba adicional en Chromium: inicio de sesión, formulario móvil, carga directa de PDF de 6 MB con 1.013 bytes de metadatos enviados al backend, finalización y consulta sobre PostgreSQL real; navegación por expedientes, reportes, usuarios, configuración y cuenta, sin errores de JavaScript/CSP. El destino de Storage se simuló en loopback y no constituye una prueba de conectividad con Supabase real.
+
+## Demostración sin Supabase
+
+Se añadieron seis pruebas aprobadas del modo de demostración. La suite local aprobó 28 pruebas; las 11 pruebas PostgreSQL optativas se omitieron porque el contenedor de QA estaba detenido (su ejecución anterior se conserva arriba). Chromium verificó el recorrido de los nueve módulos principales en administrador, la navegación móvil, el cambio de tema, el bloqueo de pantallas administrativas para personal y los avisos de solo lectura. No se modificaron las cuentas ni el proyecto Supabase del usuario.

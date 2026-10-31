@@ -1,5 +1,7 @@
 # Despliegue de SIDOC-OCI: Vercel + Supabase
 
+Para ver primero las pantallas sin configurar la base de datos, usa la [demostración navegable](DEMOSTRACION.md) con `SIDOC_DEMO=1`. Los pasos siguientes corresponden al aplicativo real.
+
 ## Estado
 
 El código está adaptado a Vercel y Supabase. Todavía NO hay un despliegue confirmado ni un proyecto de Supabase conectado. No se creó ningún recurso de Render ni de Sites. La conexión de las cuentas es el paso pendiente para ejecutar la provisión y comprobar una URL real.
