@@ -14,6 +14,7 @@ import click
 from flask import Flask, abort, flash, g, redirect, render_template, request, send_file, session, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
 from cloud_backend import PostgresDatabase, PrivateStorage, StorageError
+from google_auth import configure_google_login, normalized_google_email
 import psycopg
 
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -32,7 +33,11 @@ def create_app(test_config=None):
                       SUPABASE_STORAGE_BUCKET=os.environ.get('SUPABASE_STORAGE_BUCKET', 'sidoc-documents'),
                       SECRET_KEY=os.environ.get('SECRET_KEY', ''),
                       BOOTSTRAP_TOKEN=os.environ.get('BOOTSTRAP_TOKEN', ''),
-                      PRODUCTION=os.environ.get('SIDOC_ENV') == 'production' or os.environ.get('VERCEL') == '1')
+                      PRODUCTION=os.environ.get('SIDOC_ENV') == 'production' or os.environ.get('VERCEL') == '1',
+                      GOOGLE_CLIENT_ID=os.environ.get('GOOGLE_CLIENT_ID', ''),
+                      GOOGLE_CLIENT_SECRET=os.environ.get('GOOGLE_CLIENT_SECRET', ''),
+                      GOOGLE_REDIRECT_URI=os.environ.get('GOOGLE_REDIRECT_URI', ''),
+                      GOOGLE_WORKSPACE_DOMAIN=os.environ.get('GOOGLE_WORKSPACE_DOMAIN', ''))
     if test_config:
         app.config.update(test_config)
     cloud = bool(app.config.get('CLOUD_MODE') or app.config['DATABASE_URL'] or os.environ.get('VERCEL') == '1')
@@ -121,7 +126,8 @@ def create_app(test_config=None):
             ''')
             # Additive migration preserves accounts, PDF files and existing documents.
             for table, fields in {
-                'users': {'active': 'INTEGER NOT NULL DEFAULT 1', 'auth_version': 'INTEGER NOT NULL DEFAULT 0'},
+                'users': {'active': 'INTEGER NOT NULL DEFAULT 1', 'auth_version': 'INTEGER NOT NULL DEFAULT 0',
+                          'google_email': 'TEXT', 'google_sub': 'TEXT'},
                 'documents': {'code': "TEXT NOT NULL DEFAULT ''", 'kind': "TEXT NOT NULL DEFAULT 'Otro'",
                               'unit': "TEXT NOT NULL DEFAULT ''", 'folios': 'INTEGER NOT NULL DEFAULT 0',
                               'size': 'INTEGER NOT NULL DEFAULT 0', 'status': "TEXT NOT NULL DEFAULT 'Pendiente'",
@@ -131,6 +137,8 @@ def create_app(test_config=None):
                 for field, definition in fields.items():
                     if field not in present:
                         db().execute(f'ALTER TABLE {table} ADD COLUMN {field} {definition}')
+            db().execute('CREATE UNIQUE INDEX IF NOT EXISTS users_google_email ON users(google_email) WHERE google_email IS NOT NULL')
+            db().execute('CREATE UNIQUE INDEX IF NOT EXISTS users_google_sub ON users(google_sub) WHERE google_sub IS NOT NULL')
             db().commit()
 
     def audit(description):
@@ -188,7 +196,7 @@ def create_app(test_config=None):
     @app.context_processor
     def context():
         assets_dir = Path(app.static_folder) / 'figma'
-        return dict(cloud_mode=cloud, bootstrap_required=bool(production or cloud), custom_logo=bool(settings().get('logo_mime')) if cloud else (root / 'institution-logo').is_file(), section_titles={'documents':'Gestión documental','archive':'Archivo central','expedients':'Expedientes','users':'Usuarios y permisos','settings':'Configuración','summary':'Resumen','reports':'Reportes','loans':'Préstamos','account':'Mi cuenta'}, config_values=settings(), types=TYPES, states=STATES,
+        return dict(google_enabled=app.extensions.get('google_oauth_enabled', False), cloud_mode=cloud, bootstrap_required=bool(production or cloud), custom_logo=bool(settings().get('logo_mime')) if cloud else (root / 'institution-logo').is_file(), section_titles={'documents':'Gestión documental','archive':'Archivo central','expedients':'Expedientes','users':'Usuarios y permisos','settings':'Configuración','summary':'Resumen','reports':'Reportes','loans':'Préstamos','account':'Mi cuenta'}, config_values=settings(), types=TYPES, states=STATES,
                     today=datetime.now(ZoneInfo('America/Lima')).strftime('%d/%m/%Y'),
                     asset_exists=lambda name: (assets_dir / name).is_file() and (assets_dir / name).stat().st_size > 0)
 
@@ -663,19 +671,24 @@ def create_app(test_config=None):
             username = request.form.get('username', '').strip().lower()
             password = request.form.get('password', '')
             role = request.form.get('role')
+            try:
+                google_email = normalized_google_email(request.form.get('google_email'))
+            except ValueError:
+                flash('Indica un correo válido para Google o deja ese campo vacío.')
+                return redirect(url_for('users'))
             if not username or len(username) > 80 or len(password) < 12 or role not in ('admin', 'personal'):
                 flash('Revisa los datos. La contraseña debe tener al menos 12 caracteres.')
             else:
                 try:
-                    db().execute('INSERT INTO users(username,password,role) VALUES(?,?,?)',
-                                 (username, generate_password_hash(password), role))
+                    db().execute('INSERT INTO users(username,password,role,google_email) VALUES(?,?,?,?)',
+                                 (username, generate_password_hash(password), role, google_email))
                     audit(f'Creó usuario: {username} · {role}')
                     db().commit()
                     flash('Usuario creado.')
                 except (sqlite3.IntegrityError, psycopg.IntegrityError):
-                    flash('Ese usuario ya existe.')
+                    flash('Ese usuario o correo de Google ya está asignado.')
             return redirect(url_for('users'))
-        return render_template('users.html', section='users', users=db().execute('SELECT id,username,role,active FROM users').fetchall())
+        return render_template('users.html', section='users', users=db().execute('SELECT id,username,role,active,google_email,google_sub FROM users').fetchall())
 
     @app.post('/users/<int:user_id>/update')
     @protected(admin=True)
@@ -691,7 +704,14 @@ def create_app(test_config=None):
         if user_id == g.user['id'] and (not active or role != 'admin'):
             flash('No puedes desactivar tu propia cuenta ni quitarte el rol administrador.')
             return redirect(url_for('users'))
-        db().execute('UPDATE users SET role=?,active=? WHERE id=?', (role, active, user_id))
+        try:
+            google_email = normalized_google_email(request.form.get('google_email', user['google_email'] or ''))
+            db().execute('UPDATE users SET role=?,active=?,google_email=?,google_sub=? WHERE id=?',
+                         (role, active, google_email, user['google_sub'] if google_email == user['google_email'] else None, user_id))
+        except (ValueError, sqlite3.IntegrityError, psycopg.IntegrityError):
+            db().rollback()
+            flash('El correo de Google no es válido o ya está autorizado en otra cuenta.')
+            return redirect(url_for('users'))
         if password:
             db().execute('UPDATE users SET password=? WHERE id=?', (generate_password_hash(password), user_id))
         db().execute('UPDATE users SET auth_version=auth_version+1 WHERE id=?', (user_id,))
@@ -810,4 +830,5 @@ def create_app(test_config=None):
             response.headers['Strict-Transport-Security'] = 'max-age=31536000'
         return response
 
+    configure_google_login(app, db, audit)
     return app

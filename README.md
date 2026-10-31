@@ -74,3 +74,9 @@ La configuración para Vercel incluye HTTPS, cookies Secure y cabeceras de segur
 ## Nube: Vercel + Supabase
 
 [Instrucciones de despliegue, variables y activación del administrador](docs/VERCEL-SUPABASE.md). `wsgi.py` es el punto de entrada; `supabase/migrations/0001_sidoc.sql` contiene el esquema PostgreSQL privado y `supabase/storage.sql` el bucket privado. La carga directa conserva el límite de PDF de 10 MB sin pasar archivos grandes por Vercel. La versión local sigue usando SQLite y disco sin servicios externos.
+
+## Inicio de sesión con Google
+
+Se implementó Google OAuth/OpenID Connect para cuentas autorizadas por el administrador. [Activación, credenciales y permisos](docs/GOOGLE-OAUTH.md). Requiere aplicar `supabase/migrations/0002_google_oauth.sql` después de la migración inicial y configurar las variables de Google en Vercel. La demostración continúa sin autenticar personas reales.
+
+La pantalla de acceso incorpora la imagen de Amazonas aportada para la maqueta y un selector visible de modo oscuro/claro, también en celular.
