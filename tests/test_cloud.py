@@ -81,6 +81,16 @@ class CloudTests(unittest.TestCase):
         connection.close()
         return result
 
+    def test_duplicate_cloud_pdf_is_rejected_and_cleaned(self):
+        first = self.start()
+        self.assertEqual(self.post('/api/uploads/complete', {'id': first}).status_code, 200)
+        second = self.start()
+        response = self.post('/api/uploads/complete', {'id': second})
+        self.assertEqual(response.status_code, 409)
+        self.assertIn('PDF exacto', response.get_json()['error'])
+        self.assertEqual(self.count('documents'), 1)
+        self.assertEqual(len(self.storage.objects), 1)
+
     def test_direct_upload_over_vercel_body_limit_and_idempotence(self):
         pdf = b'%PDF-1.4\n' + b'x' * (6 * 1024 * 1024) + b'\n%%EOF\n'
         ticket = self.start(pdf)

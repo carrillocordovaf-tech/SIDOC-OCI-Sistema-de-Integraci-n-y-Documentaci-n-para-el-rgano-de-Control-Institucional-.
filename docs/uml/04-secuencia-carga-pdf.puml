@@ -1,0 +1,46 @@
+@startuml
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam ArrowColor #185B46
+skinparam packageStyle rectangle
+skinparam roundcorner 10
+title SIDOC-OCI — Secuencia de carga PDF en nube
+actor "Usuario autorizado" as U
+boundary Navegador as B
+control "Flask / Vercel" as F
+database "PostgreSQL sidoc" as DB
+participant "Supabase Storage\nbucket privado sidoc-documents" as S
+U -> B: Completar datos y seleccionar PDF
+B -> F: POST /api/uploads/start\nmetadatos + CSRF
+F -> F: Validar sesión, datos, límite 10 MB\ny acceso al expediente
+F -> S: Solicitar URL firmada para objeto aleatorio
+S --> F: URL de carga firmada
+F -> DB: Guardar pending_uploads\npropietario, metadatos, vencimiento 15 min
+F --> B: Identificador de carga + URL firmada
+B -> S: Subir bytes del PDF directamente
+S --> B: Resultado de subida
+B -> F: POST /api/uploads/complete\nidentificador + CSRF
+F -> DB: Verificar propietario, vigencia\ny reclamar carga pendiente
+alt Carga vigente y pendiente
+ F -> S: Leer objeto con límite de tamaño
+ S --> F: Contenido
+ F -> F: Validar tamaño y marcadores PDF\nRevalidar acceso al expediente
+ alt PDF válido y permisos vigentes
+  F -> DB: INSERT documents + events\nMarcar carga completa; COMMIT
+  F --> B: Redirección al listado
+ else Archivo rechazado
+  F -> DB: Marcar fallo y encolar eliminación
+  F -> S: Intentar limpieza del objeto
+  F --> B: Error de validación
+ end
+else Vencida o no autorizada
+ F --> B: Rechazar finalización
+end
+note over B,S
+Los bytes de subida no atraviesan la petición a Vercel.
+La clave service_role permanece en el servidor.
+Una descarga exige permisos y usa un enlace firmado de 60 s.
+end note
+@enduml

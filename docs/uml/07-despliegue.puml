@@ -1,0 +1,44 @@
+@startuml
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam ArrowColor #185B46
+skinparam packageStyle rectangle
+skinparam roundcorner 10
+title SIDOC-OCI — Despliegue del aplicativo en nube
+left to right direction
+node "Computadora o celular" {
+ artifact "Navegador\nHTML + CSS + JavaScript" as Browser
+}
+cloud "Vercel" {
+ node "Función Python / Flask" {
+  artifact "wsgi.py → app.py\ngoogle_auth.py\ncloud_backend.py" as App
+ }
+ artifact "Recursos estáticos\nescudo, fotografía y estilos" as Static
+}
+cloud "Supabase" {
+ node "Transaction pooler\npuerto 6543" as Pool
+ database "PostgreSQL\nesquema privado sidoc" as DB
+ node "Storage\nsidoc-documents privado" as Storage
+}
+cloud "Google\nOIDC opcional, pendiente de configurar" as Google
+Browser --> App : HTTPS / sesión / CSRF
+Browser --> Static : HTTPS
+App --> Pool : PostgreSQL TLS\nDATABASE_URL privada
+Pool --> DB : Consultas y transacciones
+App --> Storage : HTTPS / service_role privada\nfirmas, validación y limpieza
+Browser --> Storage : HTTPS / URL firmada\nsubida directa y descarga
+Browser ..> Google : Acceso Google opcional
+Google ..> App : Callback OIDC\nvalidación y cuenta autorizada
+note bottom of DB
+Base: usuarios, documentos, expedientes y préstamos.
+Trámite e inventario físico: disponibles
+con migración 0004 y código actualizado.
+end note
+note bottom of App
+Sesiones firmadas; claves solo en variables del servidor.
+Google OAuth implementado, no activado por crear tablas.
+Diagrama de producción; no representa el modo demostración.
+end note
+@enduml

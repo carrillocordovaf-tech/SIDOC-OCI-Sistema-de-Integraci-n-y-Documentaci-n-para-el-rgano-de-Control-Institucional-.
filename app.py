@@ -1,4 +1,5 @@
 import csv
+import hashlib
 import functools
 import io
 import json
@@ -16,6 +17,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from cloud_backend import PostgresDatabase, PrivateStorage, StorageError
 from google_auth import configure_google_login, normalized_google_email
 import psycopg
+from workflow import configure_workflow, init_local, workflow_available
 
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -141,6 +143,16 @@ def create_app(test_config=None):
             db().execute('CREATE UNIQUE INDEX IF NOT EXISTS users_google_sub ON users(google_sub) WHERE google_sub IS NOT NULL')
             db().commit()
 
+    if not cloud:
+        with app.app_context():
+            init_local(db())
+
+    def pdf_digest(content):
+        return hashlib.sha256(content).hexdigest() if workflow_available(db(), cloud) else None
+
+    def existing_pdf(digest):
+        return digest and db().execute('SELECT id FROM documents WHERE owner=? AND sha256=?', (g.user['id'], digest)).fetchone()
+
     def audit(description):
         db().execute('INSERT INTO events(actor,description) VALUES (?,?)',
                      (g.user['id'] if getattr(g, 'user', None) else None, description))
@@ -196,7 +208,7 @@ def create_app(test_config=None):
     @app.context_processor
     def context():
         assets_dir = Path(app.static_folder) / 'figma'
-        return dict(google_enabled=app.extensions.get('google_oauth_enabled', False), cloud_mode=cloud, bootstrap_required=bool(production or cloud), custom_logo=bool(settings().get('logo_mime')) if cloud else (root / 'institution-logo').is_file(), section_titles={'documents':'Gestión documental','archive':'Archivo central','expedients':'Expedientes','users':'Usuarios y permisos','settings':'Configuración','summary':'Resumen','reports':'Reportes','loans':'Préstamos','account':'Mi cuenta'}, config_values=settings(), types=TYPES, states=STATES,
+        return dict(google_enabled=app.extensions.get('google_oauth_enabled', False), cloud_mode=cloud, bootstrap_required=bool(production or cloud), custom_logo=bool(settings().get('logo_mime')) if cloud else (root / 'institution-logo').is_file(), section_titles={'requests':'Requerimientos y plazos','inventory':'Inventario físico','documents':'Gestión documental','archive':'Archivo central','expedients':'Expedientes','users':'Usuarios y permisos','settings':'Configuración','summary':'Resumen','reports':'Reportes','loans':'Préstamos','account':'Mi cuenta'}, config_values=settings(), types=TYPES, states=STATES,
                     today=datetime.now(ZoneInfo('America/Lima')).strftime('%d/%m/%Y'),
                     asset_exists=lambda name: (assets_dir / name).is_file() and (assets_dir / name).stat().st_size > 0)
 
@@ -443,14 +455,34 @@ def create_app(test_config=None):
             db().execute("UPDATE pending_uploads SET status='failed' WHERE id=?", (ticket,))
             db().commit()
             abort(403)
+        digest = pdf_digest(content)
+        if existing_pdf(digest):
+            db().execute("UPDATE pending_uploads SET status='failed' WHERE id=?", (ticket,))
+            db().execute('INSERT INTO object_deletions(storage) VALUES (?) ON CONFLICT(storage) DO NOTHING', (row['storage'],))
+            db().commit()
+            cleanup_objects()
+            return {'error': 'Este PDF exacto ya está registrado para tu cuenta. Busca el documento existente.'}, 409
         try:
             created = db().execute('''INSERT INTO documents(title,filename,storage,owner,code,kind,unit,folios,size,expedient_id)
                               VALUES(?,?,?,?,?,?,?,?,?,?) RETURNING id''',
                               (metadata['title'], metadata['filename'], row['storage'], g.user['id'], metadata['code'],
                                metadata['kind'], metadata['unit'], metadata['folios'], len(content), metadata['expedient_id'])).fetchone()
+            if digest:
+                db().execute('UPDATE documents SET sha256=? WHERE id=?', (digest, created['id']))
             db().execute("UPDATE pending_uploads SET status='complete',document_id=? WHERE id=?", (created['id'], ticket))
             audit(f'Registró documento: {metadata["code"] or metadata["title"]}')
             db().commit()
+        except (sqlite3.IntegrityError, psycopg.IntegrityError):
+            db().rollback()
+            if existing_pdf(digest):
+                db().execute("UPDATE pending_uploads SET status='failed' WHERE id=?", (ticket,))
+                db().execute('INSERT INTO object_deletions(storage) VALUES (?) ON CONFLICT(storage) DO NOTHING', (row['storage'],))
+                db().commit()
+                cleanup_objects()
+                return {'error': 'Este PDF exacto ya fue registrado por otra carga de tu cuenta.'}, 409
+            db().execute("UPDATE pending_uploads SET status='pending' WHERE id=?", (ticket,))
+            db().commit()
+            raise
         except Exception:
             db().rollback()
             db().execute("UPDATE pending_uploads SET status='pending' WHERE id=?", (ticket,))
@@ -492,16 +524,30 @@ def create_app(test_config=None):
                 or b'%%EOF' not in content[-4096:] or len(content) > 10 * 1024 * 1024):
             flash('Selecciona un archivo PDF con cabecera y cierre válidos, de hasta 10 MB.')
             return redirect(url_for('upload'))
+        digest = pdf_digest(content)
+        if existing_pdf(digest):
+            flash('Este PDF exacto ya está registrado para tu cuenta. Usa el registro existente.')
+            return redirect(url_for('index'))
         storage = secrets.token_hex(24) + '.pdf'
         path = uploads / storage
         path.write_bytes(content)
         try:
-            db().execute('''INSERT INTO documents(title,filename,storage,owner,code,kind,unit,folios,size,expedient_id)
-                         VALUES(?,?,?,?,?,?,?,?,?,?)''',
-                         (title, Path(file.filename).name, storage, g.user['id'], code, kind, unit, int(folios), len(content), exp))
+            uploaded = db().execute('''INSERT INTO documents(title,filename,storage,owner,code,kind,unit,folios,size,expedient_id)
+                         VALUES(?,?,?,?,?,?,?,?,?,?) RETURNING id''',
+                         (title, Path(file.filename).name, storage, g.user['id'], code, kind, unit, int(folios), len(content), exp)).fetchone()
+            if digest:
+                db().execute('UPDATE documents SET sha256=? WHERE id=?', (digest, uploaded['id']))
             audit(f'Registró documento: {code or title}')
             db().commit()
+        except (sqlite3.IntegrityError, psycopg.IntegrityError):
+            db().rollback()
+            path.unlink(missing_ok=True)
+            if existing_pdf(digest):
+                flash('Este PDF exacto ya fue registrado por otra carga de tu cuenta.')
+                return redirect(url_for('index'))
+            raise
         except Exception:
+            db().rollback()
             path.unlink(missing_ok=True)
             raise
         flash('Documento cargado correctamente.')
@@ -563,7 +609,12 @@ def create_app(test_config=None):
         if db().execute('SELECT 1 FROM loans WHERE document_id=?', (doc_id,)).fetchone():
             flash('El documento tiene historial de préstamos. Consérvalo en el archivo central.')
             return redirect(url_for('index'))
-        db().execute('DELETE FROM documents WHERE id=?', (doc_id,))
+        try:
+            db().execute('DELETE FROM documents WHERE id=?', (doc_id,))
+        except (sqlite3.IntegrityError, psycopg.IntegrityError):
+            db().rollback()
+            flash('El documento está vinculado a un inventario o requerimiento. Consérvalo para mantener la trazabilidad.')
+            return redirect(url_for('index'))
         if cloud:
             db().execute('INSERT INTO object_deletions(storage) VALUES (?) ON CONFLICT(storage) DO NOTHING', (row['storage'],))
         audit(f'Eliminó documento: {row["code"] or row["title"]}')
@@ -830,5 +881,6 @@ def create_app(test_config=None):
             response.headers['Strict-Transport-Security'] = 'max-age=31536000'
         return response
 
+    configure_workflow(app, db, protected, audit, cloud)
     configure_google_login(app, db, audit)
     return app

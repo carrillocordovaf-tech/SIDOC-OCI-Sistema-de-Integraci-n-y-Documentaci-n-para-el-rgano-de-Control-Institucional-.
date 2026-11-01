@@ -1,0 +1,43 @@
+@startuml
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam ArrowColor #185B46
+skinparam packageStyle rectangle
+skinparam roundcorner 10
+title SIDOC-OCI — Secuencia de inicio de sesión con contraseña
+actor Usuario as U
+boundary "Navegador" as B
+control "Flask / Vercel" as F
+database "Supabase PostgreSQL\nesquema sidoc" as DB
+U -> B: Abrir /login
+B -> F: GET /login
+F -> DB: Consultar usuario de sesión y configuración
+DB --> F: Datos
+F --> B: Formulario + token CSRF
+U -> B: Escribir usuario y contraseña
+B -> F: POST /login + CSRF
+F -> F: Validar CSRF
+F -> DB: Consultar intentos y cuenta activa
+DB --> F: Intentos + hash de contraseña
+alt Límite de intentos alcanzado
+ F --> B: HTTP 429
+else Credenciales válidas
+ F -> F: Verificar hash; renovar sesión\nuid, auth_version y CSRF
+ F -> DB: Registrar actividad y limpiar intentos
+ DB --> F: Confirmación
+ F --> B: Cookie de sesión segura + redirección
+ B -> F: GET / con cookie
+ F -> DB: Validar cuenta activa y auth_version\nConsultar documentos según rol
+ DB --> F: Documentos autorizados
+ F --> B: Espacio de trabajo
+else Credenciales incorrectas
+ F -> DB: Registrar intento fallido
+ F --> B: Mensaje de acceso rechazado
+end
+note over B,F
+Contraseña enviada por HTTPS. La base guarda un hash.
+Google tiene un flujo OIDC separado y requiere configuración.
+end note
+@enduml

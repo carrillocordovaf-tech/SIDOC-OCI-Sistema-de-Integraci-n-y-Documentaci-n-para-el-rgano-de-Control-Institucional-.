@@ -1,0 +1,46 @@
+@startuml
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam ArrowColor #185B46
+skinparam packageStyle rectangle
+skinparam roundcorner 10
+title SIDOC-OCI — Digitalización de archivo histórico
+start
+:Identificar expediente físico y años de origen;
+:Asignar código de inventario;
+:Registrar sede, ambiente, estante,
+nivel, caja y carpeta;
+:Registrar responsable, folios, conservación
+y estado Pendiente;
+:Preparar originales y escanear por tomos;
+:Estado En proceso;
+:Generar PDF y cargar cada parte
+mediante el módulo documental existente;
+:Vincular PDF con registro físico
+y nombrar tomo o anexo;
+if (¿Faltan partes del expediente?) then (Sí)
+ :Estado Digitalizado parcial;
+ :Programar digitalización restante;
+else (No)
+ :Estado Digitalizado;
+ :Revisar legibilidad, orden,
+folios y correspondencia con original;
+ if (¿Conforme?) then (Sí)
+  :Estado Revisado;
+ else (No)
+  :Corregir escaneo o completar partes;
+ endif
+endif
+:Conservar original e identificar
+su ubicación física vigente;
+stop
+note right
+Administrador: inventaría, vincula PDF y actualiza ubicación/estado.
+Personal: consulta inventario propio y carga sus PDF.
+Cada cambio del original genera historial.
+La verificación del escaneo es humana.
+Requiere migración 0004 y despliegue del código actualizado.
+end note
+@enduml
