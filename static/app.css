@@ -52,3 +52,19 @@ textarea { font: inherit; max-width: 100%; }
 .field textarea { width:100%; padding:12px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--text); }
 .workflow-table { min-width:780px; table-layout:auto; }
 .workflow-table th, .workflow-table td { overflow-wrap:normal; word-break:normal; }
+
+/* El perfil queda visible; solo la lista de módulos se desplaza en celular. */
+@media(max-width:760px){
+ body.menu-open{overflow:hidden}
+ .sidebar{height:100vh;height:100dvh;min-height:0;max-height:100dvh;overflow:hidden;gap:12px;padding:16px 16px max(16px,env(safe-area-inset-bottom));justify-content:flex-start}
+ .sidebar #menu-close{flex-shrink:0;min-height:44px}
+ .sidebar>nav{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px}
+ .sidebar nav a{min-height:44px;height:auto;font-size:14px;margin-bottom:4px}
+ .sidebar-bottom{flex-shrink:0;margin-top:0;background:var(--surface)}
+ .sidebar .storage-state{display:none}
+ .sidebar .profile{margin-top:0;padding-top:12px;flex-direction:column;align-items:stretch;gap:12px}
+ .sidebar .profile>a{width:100%;font-size:14px;line-height:1.4}
+ .sidebar .profile small{font-size:12px}
+ .sidebar .profile form{margin:0;width:100%}
+ .sidebar .profile .logout-button{width:100%;min-height:44px;padding:10px 16px;border:1px solid var(--line);border-radius:8px;background:var(--pale);color:var(--text);font-size:14px;font-weight:600}
+}
