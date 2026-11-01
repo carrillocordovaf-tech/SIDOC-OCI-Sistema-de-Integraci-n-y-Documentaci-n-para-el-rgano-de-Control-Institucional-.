@@ -33,7 +33,7 @@ class WorkflowTests(unittest.TestCase):
         self.post('/login', {'username': username, 'password': PASSWORD})
 
     def upload(self, title='Informe de prueba', code='INF-001', **kwargs):
-        return self.post('/upload', dict(title=title, code=code, pdf=(io.BytesIO(PDF), 'archivo.pdf'), **kwargs))
+        return self.post('/upload', dict(title=title, code=code, pdf=(io.BytesIO(PDF.replace(b'%%EOF', ('% '+title+' '+code+'\n%%EOF').encode())), 'archivo.pdf'), **kwargs))
 
     def test_document_lifecycle_favorites_filters_export_and_loans(self):
         self.post('/expedients', {'code': 'EXP-001', 'title': 'Control de obras'})

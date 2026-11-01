@@ -66,3 +66,36 @@ class PostgresCloudTests(cloud_tests.CloudTests):
             with self.assertRaises(psycopg.errors.InsufficientPrivilege):
                 connection.execute('SELECT * FROM sidoc.users')
             connection.rollback()
+
+
+import test_oci_workflow as oci_tests
+
+
+@unittest.skipUnless(QA_URL, 'Requires disposable local PostgreSQL QA database')
+class PostgresOCIWorkflowTests(oci_tests.OCIWorkflowTests):
+    def setUp(self):
+        url = urlparse(QA_URL)
+        if url.hostname not in ('127.0.0.1', 'localhost') or url.path != '/sidoc_qa':
+            raise RuntimeError('Integration tests only permit loopback /sidoc_qa')
+        with psycopg.connect(QA_URL, sslmode='require') as c:
+            c.execute('TRUNCATE sidoc.users,sidoc.physical_locations RESTART IDENTITY CASCADE')
+        self.tmp = tempfile.TemporaryDirectory()
+        self.app = create_app(dict(TESTING=True,CLOUD_MODE=True,DATABASE_URL=QA_URL,
+            SUPABASE_URL='https://supabase.test',SUPABASE_SERVICE_ROLE_KEY='test-only',
+            SECRET_KEY='s'*64,BOOTSTRAP_TOKEN='b'*64,STORAGE_CLIENT=FakeStorage()))
+        result = self.app.test_cli_runner().invoke(args=['create-admin','admin','--password','test-password-123'])
+        self.assertEqual(result.exit_code,0,result.output)
+        self.client = self.app.test_client()
+        self.login('admin')
+        for name in ('ana','luis'):
+            self.post('/users',dict(username=name,password='test-password-123',role='personal'))
+
+    def sql(self, query, params=()):
+        with PostgresDatabase(QA_URL) as c:
+            return c.execute(query,params).fetchall()
+
+    def test_missing_cloud_migration_shows_instructions_instead_of_crashing(self):
+        # The unit suite covers absent migrations with a separate temporary database.
+        # Here verify that real PostgreSQL exposes both installed modules.
+        self.assertEqual(self.client.get('/requests').status_code,200)
+        self.assertEqual(self.client.get('/inventory').status_code,200)

@@ -1,0 +1,56 @@
+@startuml
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam ArrowColor #185B46
+skinparam packageStyle rectangle
+skinparam roundcorner 10
+title SIDOC-OCI — Casos de uso implementados
+left to right direction
+actor "Personal OCI" as P
+actor "Administrador OCI" as A
+A --|> P
+rectangle "SIDOC-OCI" {
+ usecase "Iniciar / cerrar sesión" as Login
+ usecase "Cargar documento PDF" as Up
+ usecase "Buscar, filtrar y descargar\ndocumentos autorizados" as Read
+ usecase "Marcar favoritos" as Fav
+ usecase "Consultar expedientes asignados" as Exp
+ usecase "Ver resumen / reportes\ny exportar CSV de su ámbito" as Rep
+ usecase "Cambiar contraseña propia" as Account
+ usecase "Crear usuarios y gestionar\nroles / acceso Google autorizado" as Users
+ usecase "Crear expedientes y\nasignar responsable" as ManageExp
+ usecase "Editar, archivar y eliminar\ndocumentos" as Edit
+ usecase "Registrar préstamos\ny devoluciones" as Loans
+ usecase "Consultar requerimientos asignados\ny registrar avance / atención" as Track
+ usecase "Registrar y derivar requerimientos\ncon plazo de 1 a 3 días" as Assign
+ usecase "Inventariar originales, ubicar archivo\ny vincular PDF digitalizados" as Inventory
+ usecase "Consultar inventario bajo custodia" as ViewInventory
+ usecase "Configurar institución, escudo\ny limpieza de cargas" as Config
+}
+P --> Login
+P --> Up
+P --> Read
+P --> Fav
+P --> Exp
+P --> Rep
+P --> Account
+P --> Track
+P --> ViewInventory
+A --> Assign
+A --> Inventory
+A --> Users
+A --> ManageExp
+A --> Edit
+A --> Loans
+A --> Config
+note bottom of P
+Personal: documentos propios y expedientes asignados.
+Administrador: acceso a todos los documentos.
+end note
+note bottom of Login
+Acceso Google: implementado, requiere credenciales externas.
+La creación inicial del administrador usa BOOTSTRAP_TOKEN.
+end note
+@enduml

@@ -1,0 +1,51 @@
+@startuml
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam ArrowColor #185B46
+skinparam packageStyle rectangle
+skinparam roundcorner 10
+title SIDOC-OCI — Actividad de gestión documental actual
+start
+:Abrir aplicativo;
+:Ingresar usuario y contraseña;
+if (¿Cuenta activa y credenciales válidas?) then (Sí)
+ :Crear sesión y cargar permisos;
+ :Consultar documentos de su ámbito;
+ if (¿Registrar un PDF?) then (Sí)
+  :Completar asunto, código, tipo,
+folios y expediente opcional;
+  :Seleccionar PDF de hasta 10 MB;
+  :Validar sesión, CSRF, datos y permisos;
+  if (¿Datos y permisos válidos?) then (Sí)
+   :Obtener URL firmada y subir a Storage privado;
+   :Solicitar finalización de carga;
+   :Validar propietario, vigencia, tamaño
+y marcadores del PDF;
+   if (¿Archivo aceptado?) then (Sí)
+    :Guardar documento y actividad;
+    :Mostrar documento con estado Pendiente;
+   else (No)
+    :Rechazar carga y gestionar limpieza;
+   endif
+  else (No)
+   :Mostrar error de validación;
+  endif
+ endif
+ if (¿Es administrador?) then (Sí)
+  :Puede editar metadatos y cambiar estado
+a Pendiente, En revisión o Archivado;
+ endif
+ :Buscar / descargar documentos autorizados;
+ :Cerrar sesión;
+else (No)
+ :Rechazar acceso; limitar intentos repetidos;
+endif
+stop
+note right
+La validación del PDF no equivale a antivirus.
+El cambio de estado es administrativo;
+no existe un circuito automático de aprobación.
+end note
+@enduml

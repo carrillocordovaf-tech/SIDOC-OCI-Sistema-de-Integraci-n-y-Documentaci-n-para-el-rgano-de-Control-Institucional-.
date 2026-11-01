@@ -1,0 +1,148 @@
+@startuml
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam ArrowColor #185B46
+skinparam packageStyle rectangle
+skinparam roundcorner 10
+title SIDOC-OCI — Clases del dominio y persistencia
+hide methods
+class Usuario {
+ id: bigint
+ username: text
+ password: hash
+ role: admin | personal
+ active: integer
+ auth_version: integer
+ google_email: text [opcional]
+ google_sub: text [opcional]
+}
+class Documento {
+ id: bigint
+ title: text
+ code: text
+ kind: Informe | Oficio | Memorando | Acta | Otro
+ status: Pendiente | En revisión | Archivado
+ storage: clave de objeto
+ filename: text
+ folios: integer
+ size: bigint
+ sha256: huella de nueva carga [opcional]
+ created: fecha de carga
+ issued_on: date [opcional]
+ issuer: text
+ recipient: text
+}
+class Expediente {
+ id: bigint
+ code: text
+ title: text
+ created: fecha de registro
+}
+class Prestamo {
+ id: bigint
+ borrower: text
+ due: fecha prevista
+ returned: fecha [opcional]
+}
+class Favorito {
+ user_id: bigint
+ document_id: bigint
+}
+class Evento {
+ id: bigint
+ description: text
+ created: fecha
+}
+package "Inventario físico y digitalización" #FFF3D6 {
+ class TipoDocumento {
+  id: bigint
+  code: text
+  name: text
+  category: text
+ }
+ class UbicacionFisica {
+  id: bigint
+  code: text
+  site: sede
+  room: ambiente
+  shelf: estante
+  shelf_level: nivel
+  box: caja
+  folder: carpeta
+ }
+ class RegistroFisico {
+  id: bigint
+  inventory_code: text
+  record_type: Documento | Expediente
+  year_from: año
+  year_to: año
+  conservation: text
+  digitization_status: text
+  access_level: text
+ }
+ class VinculoPDF {
+  archive_item_id: bigint
+  document_id: bigint
+  part_label: tomo o anexo
+ }
+}
+Usuario "1" -- "0..*" Documento : propietario
+Usuario "1" -- "0..*" Expediente : responsable
+Expediente "0..1" -- "0..*" Documento : agrupa
+Documento "1" -- "0..*" Prestamo
+Usuario "1" -- "0..*" Favorito
+Documento "1" -- "0..*" Favorito
+Usuario "0..1" -- "0..*" Evento : actor
+TipoDocumento "0..1" -- "0..*" Documento
+TipoDocumento "0..1" -- "0..*" RegistroFisico
+UbicacionFisica "1" -- "0..*" RegistroFisico
+Usuario "1" -- "0..*" RegistroFisico : custodio
+Expediente "0..1" -- "0..*" RegistroFisico
+RegistroFisico "1" -- "0..*" VinculoPDF
+Documento "1" -- "0..*" VinculoPDF
+note bottom of Documento
+Modelo conceptual UML: las entidades se persisten mediante SQL;
+no son clases ORM implementadas en Python.
+Cada Documento actual requiere PDF; el inventario físico puede existir sin PDF.
+Solo un préstamo activo por documento (índice único).
+No se incluyen tablas técnicas de configuración, intentos y colas.
+end note
+class Requerimiento {
+ id: bigint
+ code: text único
+ subject: text
+ requester: text
+ received_at: fecha UTC
+ deadline_days: 1 | 2 | 3
+ due_at: fecha UTC
+ status: Registrado | En trámite | Atendido | Archivado
+ responded_at: fecha UTC [opcional]
+ response_note: text
+ version: integer
+}
+class EventoRequerimiento {
+ id: bigint
+ description: text
+ created: fecha UTC
+}
+class EventoInventario {
+ id: bigint
+ description: text
+ created: fecha UTC
+}
+Usuario "1" -- "0..*" Requerimiento : responsable actual
+Expediente "0..1" -- "0..*" Requerimiento
+Documento "0..1" -- "0..*" Requerimiento : origen
+Documento "0..1" -- "0..*" Requerimiento : respuesta
+Requerimiento "1" -- "0..*" EventoRequerimiento
+Usuario "1" -- "0..*" EventoRequerimiento : actor
+RegistroFisico "1" -- "0..*" EventoInventario
+Usuario "1" -- "0..*" EventoInventario : actor
+note bottom of Requerimiento
+Vencimiento = recepción + 24/48/72 horas calendario.
+Una derivación conserva el plazo.
+La atención requiere nota y fecha; PDF opcional.
+end note
+@enduml

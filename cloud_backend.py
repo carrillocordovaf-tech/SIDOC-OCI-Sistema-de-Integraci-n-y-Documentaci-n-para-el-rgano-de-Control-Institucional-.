@@ -5,7 +5,8 @@ from urllib.parse import quote, urljoin, urlparse
 import requests
 
 TABLES = ('users', 'documents', 'expedients', 'favorites', 'loans', 'events', 'settings',
-          'login_attempts', 'pending_uploads', 'object_deletions')
+          'login_attempts', 'pending_uploads', 'object_deletions', 'document_types', 'physical_locations',
+          'archive_items', 'archive_item_documents', 'service_requests', 'request_events', 'archive_events')
 TABLE_PATTERN = re.compile(r'\b(' + '|'.join(TABLES) + r')\b')
 
 

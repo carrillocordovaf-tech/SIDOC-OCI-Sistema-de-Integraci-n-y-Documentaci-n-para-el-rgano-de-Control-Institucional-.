@@ -1,0 +1,56 @@
+@startuml
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam ArrowColor #185B46
+skinparam packageStyle rectangle
+skinparam roundcorner 10
+title SIDOC-OCI — Seguimiento de requerimiento
+actor Administrador as A
+actor "Personal responsable" as P
+boundary Navegador as B
+control "Flask / Vercel" as F
+database "Supabase PostgreSQL" as DB
+A -> B: Registrar solicitud, responsable y plazo
+B -> F: POST /requests + CSRF
+F -> F: Validar administrador, fecha y referencias
+F -> F: Calcular recepción + 24/48/72 horas
+F -> DB: INSERT requerimiento y evento; COMMIT
+F --> B: Abrir seguimiento
+P -> B: Consultar bandeja
+B -> F: GET /requests
+F -> DB: Consultar solo requerimientos asignados
+DB --> F: Solicitudes y fechas
+F -> F: Calcular vencidos y próximos a vencer
+F --> B: Bandeja e indicadores
+P -> B: Registrar inicio del trámite con nota
+B -> F: POST /requests/id + versión + CSRF
+F -> F: Validar propietario y transición
+F -> DB: UPDATE si versión coincide; INSERT evento
+F --> B: Historial actualizado
+opt Derivación por administrador
+ A -> B: Seleccionar nuevo responsable y motivo
+ B -> F: POST /requests/id, action=assign
+ F -> DB: Cambiar responsable y versión; conservar plazo
+ F -> DB: Registrar evento; COMMIT
+ F --> B: Seguimiento actualizado
+end
+note over P,F
+Continúa el responsable actual después de una derivación.
+end note
+P -> B: Registrar atención y PDF opcional autorizado
+B -> F: POST estado Atendido + nota + versión + CSRF
+F -> F: Validar permisos y documento de respuesta
+F -> DB: Guardar hora de atención, nota y evento; COMMIT
+F --> B: Atendido en plazo o fuera de plazo
+A -> B: Verificar y archivar
+B -> F: POST estado Archivado + nota + versión + CSRF
+F -> F: Validar administrador y estado Atendido
+F -> DB: Actualizar estado; registrar evento; COMMIT
+F --> B: Historial conservado
+note over F,DB
+Si cambia la versión, se rechaza la actualización obsoleta.
+Las operaciones de cambio se registran en transacciones.
+end note
+@enduml

@@ -1,6 +1,6 @@
 # SIDOC-OCI
 
-Aplicativo local de gestión documental con Flask, SQLite y almacenamiento de PDF en disco. Interfaz adaptable basada en las cinco pantallas del archivo Figma del usuario. Preparado para Vercel + Supabase; despliegue real pendiente de autorizar las cuentas. Consulta [la guía de nube](docs/VERCEL-SUPABASE.md). El escudo original proporcionado por el usuario está incorporado. La reproducción visual completa está pendiente de los demás recursos de Figma cuya descarga bloquea el proxy; consulta [el inventario](docs/FIGMA.md).
+Aplicativo de gestión documental con Flask: PostgreSQL y Storage privado de Supabase en nube; SQLite y archivos locales para desarrollo. Interfaz adaptable basada en las cinco pantallas del archivo Figma del usuario. El usuario ya configuró Vercel + Supabase y creó su administrador. Las ampliaciones de trámite e inventario requieren migración 0004 y despliegue del código actualizado. Consulta [la guía de nube](docs/VERCEL-SUPABASE.md). El escudo original proporcionado por el usuario está incorporado. La reproducción visual completa está pendiente de los demás recursos de Figma cuya descarga bloquea el proxy; consulta [el inventario](docs/FIGMA.md).
 
 ## Ver una demostración sin Supabase
 
@@ -80,3 +80,8 @@ La configuración para Vercel incluye HTTPS, cookies Secure y cabeceras de segur
 Se implementó Google OAuth/OpenID Connect para cuentas autorizadas por el administrador. [Activación, credenciales y permisos](docs/GOOGLE-OAUTH.md). Requiere aplicar `supabase/migrations/0002_google_oauth.sql` después de la migración inicial y configurar las variables de Google en Vercel. La demostración continúa sin autenticar personas reales.
 
 La pantalla de acceso incorpora la imagen de Amazonas aportada para la maqueta y un selector visible de modo oscuro/claro, también en celular.
+
+
+## Seguimiento OCI e inventario físico
+
+El módulo de requerimientos controla plazos operativos de 1 a 3 días calendario, responsables, derivaciones, atención e historial. El inventario registra originales históricos y ubicación física y vincula tomos PDF. Consulte [problemática, solución e instalación de la actualización](docs/PROBLEMATICA-SOLUCION-OCI.md). En una base ya instalada hasta 0003, aplicar únicamente `supabase/migrations/0004_tramite_oci.sql`. No repetir la instalación inicial.

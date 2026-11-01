@@ -59,9 +59,12 @@ def create_demo_app():
 
     @app.before_request
     def demo_user():
-        g.user = USERS[1] if request.cookies.get('sidoc_demo_role') == 'personal' else USERS[0]
+        role = request.cookies.get('sidoc_demo_role')
+        g.user = (USERS[1] if role == 'personal' else USERS[0]) if role in ('admin', 'personal') else None
         if request.endpoint in ('login', 'setup'):
             g.user = None
+        if not g.user and request.endpoint not in ('login', 'setup', 'demo_role', 'logout', 'static', 'healthz', 'institutional_logo'):
+            return redirect(url_for('login'))
         if request.method not in ('GET', 'HEAD', 'OPTIONS') and request.endpoint != 'logout':
             return render_template('error.html', message='Esta es una demostración. No se guardan cambios ni archivos.'), 405
 
@@ -132,7 +135,7 @@ def create_demo_app():
     def demo_role(role):
         if role not in ('admin', 'personal'):
             abort(404)
-        response = redirect(url_for('index'))
+        response = redirect(url_for('summary') if role == 'admin' else url_for('index'))
         response.set_cookie('sidoc_demo_role', role, httponly=True, samesite='Lax', secure=request.is_secure)
         return response
 

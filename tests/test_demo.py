@@ -11,6 +11,18 @@ class DemoTests(unittest.TestCase):
         self.app = create_demo_app()
         self.app.config['TESTING'] = True
         self.client = self.app.test_client()
+        self.client.get('/demo/role/admin')
+
+    def test_login_precedes_workspace_and_logout_clears_access(self):
+        visitor = self.app.test_client()
+        for path in ('/', '/account', '/summary', '/upload'):
+            self.assertEqual(visitor.get(path).location, '/login')
+        self.assertEqual(visitor.get('/login').status_code, 200)
+        self.assertEqual(visitor.get('/demo/role/admin').location, '/summary')
+        self.assertEqual(visitor.get('/summary').status_code, 200)
+        visitor.post('/logout')
+        self.assertEqual(visitor.get('/account').location, '/login')
+        self.assertEqual(visitor.get('/demo/role/personal').location, '/')
 
     def test_can_start_on_vercel_without_database_or_secrets(self):
         with patch.dict(os.environ, {'VERCEL': '1', 'SIDOC_DEMO': '1', 'SECRET_KEY': '',
