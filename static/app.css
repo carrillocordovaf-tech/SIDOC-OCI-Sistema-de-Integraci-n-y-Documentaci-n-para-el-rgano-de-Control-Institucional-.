@@ -68,3 +68,19 @@ textarea { font: inherit; max-width: 100%; }
  .sidebar .profile form{margin:0;width:100%}
  .sidebar .profile .logout-button{width:100%;min-height:44px;padding:10px 16px;border:1px solid var(--line);border-radius:8px;background:var(--pale);color:var(--text);font-size:14px;font-weight:600}
 }
+
+/* Perfil en el encabezado: panel informativo y salida accesible. */
+.institutional-header{position:relative;z-index:35}
+.user-dropdown{position:static}
+.user-summary{list-style:none;display:flex;align-items:center;gap:8px;cursor:pointer;min-height:44px;border-radius:8px;padding:4px}
+.user-summary::-webkit-details-marker{display:none}
+.user-summary-name{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.user-summary-name small{display:block;color:var(--muted);font-size:10px;margin-top:4px}
+.user-panel{position:absolute;right:24px;top:calc(100% - 2px);width:min(340px,calc(100vw - 32px));padding:20px;border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:0 12px 32px #0002;color:var(--text);z-index:40}
+.user-panel{max-height:calc(100vh - 100px);max-height:calc(100dvh - 100px);overflow-y:auto}
+.user-panel h2{font-size:16px;margin:0 0 16px}.user-panel dl{margin:0 0 16px}.user-panel dt{font-size:11px;color:var(--muted);margin-top:12px}.user-panel dd{margin:5px 0 0;background:var(--bg);padding:10px;border-radius:6px;overflow-wrap:anywhere;font-size:13px}.user-panel a{font-size:12px}
+.header-logout{margin:0;flex-shrink:0}.logout-arrow{min-width:44px;min-height:44px;padding:8px;color:var(--green);background:var(--pale);border:1px solid var(--line)}
+@media(max-width:1100px){.user-summary-name{display:none}.header-tools{gap:10px}}
+@media(max-width:760px){.workspace-page .header-tools .brand{display:none}.workspace-page .header-tools{gap:8px}.user-dropdown{margin-left:auto}.user-summary{padding:2px}.user-panel{right:16px}.header-logout .logout-arrow{width:44px;padding:8px}.sidebar-bottom{padding-top:4px}}
+
+@media(max-width:760px){.workspace-page .sidebar{top:74px;height:calc(100vh - 74px);height:calc(100dvh - 74px);max-height:calc(100dvh - 74px)}}
