@@ -129,7 +129,7 @@ def create_app(test_config=None):
             # Additive migration preserves accounts, PDF files and existing documents.
             for table, fields in {
                 'users': {'active': 'INTEGER NOT NULL DEFAULT 1', 'auth_version': 'INTEGER NOT NULL DEFAULT 0',
-                          'google_email': 'TEXT', 'google_sub': 'TEXT'},
+                          'google_email': 'TEXT', 'google_sub': 'TEXT', 'display_name': "TEXT NOT NULL DEFAULT ''"},
                 'documents': {'code': "TEXT NOT NULL DEFAULT ''", 'kind': "TEXT NOT NULL DEFAULT 'Otro'",
                               'unit': "TEXT NOT NULL DEFAULT ''", 'folios': 'INTEGER NOT NULL DEFAULT 0',
                               'size': 'INTEGER NOT NULL DEFAULT 0', 'status': "TEXT NOT NULL DEFAULT 'Pendiente'",
@@ -146,6 +146,22 @@ def create_app(test_config=None):
     if not cloud:
         with app.app_context():
             init_local(db())
+
+    def names_available():
+        if isinstance(db(), sqlite3.Connection):
+            return any(row['name'] == 'display_name' for row in db().execute('PRAGMA table_info(users)'))
+        return bool(db().execute('SELECT 1 FROM information_schema.columns WHERE table_schema=? AND table_name=? AND column_name=?',
+                                 ('sidoc', 'users', 'display_name')).fetchone())
+
+    def save_name(user_id):
+        if 'display_name' not in request.form:
+            return
+        value = request.form.get('display_name', '').strip()
+        if len(value) > 160:
+            abort(400, 'El nombre debe tener hasta 160 caracteres.')
+        if not names_available():
+            abort(503, 'Aplica la actualización 0005_user_display_name.sql en Supabase para guardar nombres.')
+        db().execute('UPDATE users SET display_name=? WHERE id=?', (value, user_id))
 
     def pdf_digest(content):
         return hashlib.sha256(content).hexdigest() if workflow_available(db(), cloud) else None
@@ -731,15 +747,18 @@ def create_app(test_config=None):
                 flash('Revisa los datos. La contraseña debe tener al menos 12 caracteres.')
             else:
                 try:
-                    db().execute('INSERT INTO users(username,password,role,google_email) VALUES(?,?,?,?)',
-                                 (username, generate_password_hash(password), role, google_email))
+                    created_user = db().execute('INSERT INTO users(username,password,role,google_email) VALUES(?,?,?,?) RETURNING id',
+                                 (username, generate_password_hash(password), role, google_email)).fetchone()
+                    save_name(created_user['id'])
                     audit(f'Creó usuario: {username} · {role}')
                     db().commit()
                     flash('Usuario creado.')
                 except (sqlite3.IntegrityError, psycopg.IntegrityError):
                     flash('Ese usuario o correo de Google ya está asignado.')
             return redirect(url_for('users'))
-        return render_template('users.html', section='users', users=db().execute('SELECT id,username,role,active,google_email,google_sub FROM users').fetchall())
+        can_edit_name = names_available()
+        columns = 'id,username,role,active,google_email,google_sub' + (',display_name' if can_edit_name else '')
+        return render_template('users.html', section='users', name_edit_enabled=can_edit_name, users=db().execute(f'SELECT {columns} FROM users').fetchall())
 
     @app.post('/users/<int:user_id>/update')
     @protected(admin=True)
@@ -763,6 +782,7 @@ def create_app(test_config=None):
             db().rollback()
             flash('El correo de Google no es válido o ya está autorizado en otra cuenta.')
             return redirect(url_for('users'))
+        save_name(user_id)
         if password:
             db().execute('UPDATE users SET password=? WHERE id=?', (generate_password_hash(password), user_id))
         db().execute('UPDATE users SET auth_version=auth_version+1 WHERE id=?', (user_id,))
@@ -776,6 +796,12 @@ def create_app(test_config=None):
     @app.route('/account', methods=['GET', 'POST'])
     @protected()
     def account():
+        if request.method == 'POST' and request.form.get('action') == 'profile':
+            save_name(g.user['id'])
+            audit('Actualizó su nombre de presentación')
+            db().commit()
+            flash('Nombre actualizado.')
+            return redirect(url_for('account'))
         if request.method == 'POST':
             password = request.form.get('password', '')
             if not check_password_hash(g.user['password'], request.form.get('current', '')) or len(password) < 12:
@@ -788,7 +814,7 @@ def create_app(test_config=None):
                 session['csrf'] = secrets.token_hex(32)
                 flash('Contraseña actualizada.')
             return redirect(url_for('account'))
-        return render_template('account.html', section='account')
+        return render_template('account.html', section='account', name_edit_enabled=names_available())
 
     @app.get('/branding/logo')
     def institutional_logo():

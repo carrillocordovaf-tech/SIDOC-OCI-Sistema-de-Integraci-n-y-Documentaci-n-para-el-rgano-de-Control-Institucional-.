@@ -108,6 +108,10 @@ def configure_google_login(app, db, audit):
             except (sqlite3.IntegrityError, psycopg.IntegrityError):
                 db().rollback()
                 return denied(unauthorized)
+        google_name = claims.get('name')
+        if ('display_name' in dict(user) and not user['display_name'] and isinstance(google_name, str)
+                and 0 < len(google_name.strip()) <= 160):
+            db().execute("UPDATE users SET display_name=? WHERE id=? AND display_name=''", (google_name.strip(), user['id']))
         # Do not retain access, refresh or identity tokens in cookies or the database.
         session.clear()
         session.update(uid=user['id'], auth_version=user['auth_version'],

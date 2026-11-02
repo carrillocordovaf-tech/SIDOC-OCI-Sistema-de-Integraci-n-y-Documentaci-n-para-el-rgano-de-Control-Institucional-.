@@ -119,3 +119,14 @@ cloudUpload?.addEventListener('submit', async event => {
     button.disabled = false;
   }
 });
+
+const userDropdown = document.getElementById('user-dropdown');
+document.addEventListener('click', event => {
+  if (userDropdown?.open && !userDropdown.contains(event.target)) userDropdown.open = false;
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && userDropdown?.open) {
+    userDropdown.open = false;
+    userDropdown.querySelector('summary')?.focus();
+  }
+});

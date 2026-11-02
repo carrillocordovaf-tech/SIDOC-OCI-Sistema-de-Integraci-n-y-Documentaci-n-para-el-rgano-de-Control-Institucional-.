@@ -114,6 +114,19 @@ class GoogleOAuthTests(unittest.TestCase):
             self.assertNotIn('refresh_token', session)
         self.assertIn('Inicio de sesión con Google', self.sql('SELECT description FROM events')[0][0])
 
+    def test_google_name_populates_only_empty_authorized_profile(self):
+        self.claim_overrides = {'name': 'Nombre desde Google', 'email_verified': False}
+        self.callback()
+        self.assertEqual(self.sql('SELECT display_name FROM users WHERE id=1')[0][0], '')
+        self.claim_overrides = {'name': 'Nombre desde Google'}
+        self.client = self.app.test_client()
+        self.callback()
+        self.assertEqual(self.sql('SELECT display_name FROM users WHERE id=1')[0][0], 'Nombre desde Google')
+        self.sql('UPDATE users SET display_name=? WHERE id=1', ('Nombre elegido por usuario',))
+        self.client = self.app.test_client()
+        self.callback()
+        self.assertEqual(self.sql('SELECT display_name FROM users WHERE id=1')[0][0], 'Nombre elegido por usuario')
+
     def test_invalid_signature_nonce_audience_issuer_expiry_and_unverified_email_rejected(self):
         cases = [('nonce', {'nonce': 'wrong'}), ('aud', {'aud': 'another-client'}),
                  ('iss', {'iss': 'https://attacker.example'}), ('exp', {'exp': int(time.time())-300}),
