@@ -88,7 +88,7 @@ def create_demo_app():
         return [dict(doc) for doc in DOCUMENTS if g.user['role'] == 'admin' or doc['owner'] == g.user['id']]
 
     def visible_expedients():
-        return [dict(exp, count=sum(doc['expedient_id'] == exp['id'] for doc in visible_documents()))
+        return [dict(exp, owner_name=USERS[exp['owner']-1]['username'], count=sum(doc['expedient_id'] == exp['id'] for doc in visible_documents()))
                 for exp in EXPEDIENTS if g.user['role'] == 'admin' or exp['owner'] == g.user['id']]
 
     def filtered(archive=False):
