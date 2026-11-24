@@ -130,3 +130,13 @@ document.addEventListener('keydown', event => {
     userDropdown.querySelector('summary')?.focus();
   }
 });
+
+const expedientSelect = document.getElementById('expedient_id');
+const expedientOwner = document.getElementById('expedient-owner');
+function updateExpedientOwner() {
+  if (!expedientSelect || !expedientOwner) return;
+  expedientOwner.value = expedientSelect.selectedOptions[0]?.dataset.ownerName || '';
+}
+expedientSelect?.addEventListener('change', updateExpedientOwner);
+expedientSelect?.form?.addEventListener('reset', () => setTimeout(updateExpedientOwner, 0));
+updateExpedientOwner();

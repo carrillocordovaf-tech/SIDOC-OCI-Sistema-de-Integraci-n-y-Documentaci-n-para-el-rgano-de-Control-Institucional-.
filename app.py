@@ -219,7 +219,9 @@ def create_app(test_config=None):
 
     def expedients_for_user():
         where, params = scope('e')
-        return db().execute(f'SELECT e.* FROM expedients e WHERE {where} ORDER BY id DESC', params).fetchall()
+        owner_label = "COALESCE(NULLIF(TRIM(u.display_name), ''), u.username)" if names_available() else 'u.username'
+        return db().execute(f'''SELECT e.*, {owner_label} AS owner_name FROM expedients e
+                   JOIN users u ON u.id=e.owner WHERE {where} ORDER BY e.id DESC''', params).fetchall()
 
     @app.context_processor
     def context():
@@ -666,9 +668,11 @@ def create_app(test_config=None):
             return redirect(url_for('expedients'))
         where, params = scope('e')
         join_scope = '' if g.user['role'] == 'admin' else ' AND d.owner=e.owner'
-        rows = db().execute(f'''SELECT e.*,count(d.id) AS count FROM expedients e
-                   LEFT JOIN documents d ON d.expedient_id=e.id {join_scope} WHERE {where} GROUP BY e.id ORDER BY e.id DESC''', params).fetchall()
-        owners = db().execute('SELECT id,username FROM users WHERE active=1 ORDER BY username').fetchall() if g.user['role'] == 'admin' else []
+        owner_label = "COALESCE(NULLIF(TRIM(u.display_name), ''), u.username)" if names_available() else 'u.username'
+        rows = db().execute(f'''SELECT e.*, {owner_label} AS owner_name,count(d.id) AS count FROM expedients e
+                   JOIN users u ON u.id=e.owner
+                   LEFT JOIN documents d ON d.expedient_id=e.id {join_scope} WHERE {where} GROUP BY e.id,u.id ORDER BY e.id DESC''', params).fetchall()
+        owners = db().execute(f'SELECT u.id,u.username,{owner_label} AS owner_name FROM users u WHERE active=1 ORDER BY u.username').fetchall() if g.user['role'] == 'admin' else []
         return render_template('expedients.html', section='expedients', expedients=rows, owners=owners)
 
     @app.route('/loans', methods=['GET', 'POST'])
